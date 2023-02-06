@@ -1,5 +1,5 @@
 import axios from "axios"
-import { chunk } from "lodash-es"
+import { chunk, reverse } from "lodash-es"
 import { DateTime } from "luxon"
 import {
 	kline_1m,
@@ -28,8 +28,6 @@ const processJob = async job => {
 			requestEnd = sessionEnd
 		}
 
-		console.log(requestEnd.toISO())
-
 		const query = `${process.env.BYBIT_FUTURES_DATA_BASE_URL}${process.env.BYBIT_FUTURES_KLINE}?symbol=${job.symbol}&interval=${job.timeframe}&start=${requestStart.ts}&end=${requestEnd.ts}&limit=200`
 		requests.push(query)
 		requestStart = requestStart.plus({ milliseconds: updateInterval })
@@ -38,31 +36,26 @@ const processJob = async job => {
 
 	const results = []
 	for await (let request of requests) {
-		//FIXME: make sure this works
-
 		// get candle data
-		const data = await axios(url)
+		const data = await axios(request)
 			.then(res => res.data.result.list)
 			.catch(async err => {
-				await createLogEntry({
-					message: `Could't get candle data: ${err}`,
-					type: "error",
-					callingFunction: "getCandleData",
-				})
-
 				return []
 			})
-
-		if (data.length) {
-			// format candle data
-			const formatted = formatCandles(data)
-			formatted.forEach(candle => results.push(candle))
-			await saveCandles(results, job.timeframe)
-		}
+		// format candle data
+		const formatted = formatCandles(data, job.symbol)
+		formatted.forEach(candle => results.push(candle))
+		console.log(
+			`${job.symbol} - ${job.timeframe}m: received ${data.length} candles, total ${results.length} candles`
+		)
+	}
+	if (results.length) {
+		await saveCandles(results, job.timeframe, job.symbol)
+		console.log(`finished writing ${job.symbol} - ${job.timeframe}m`)
 	}
 }
 
-function formatCandles(candles) {
+function formatCandles(candles, symbol) {
 	const candleData = []
 
 	const sorted = reverse(candles)
@@ -89,27 +82,43 @@ function formatCandles(candles) {
 	return candleData
 }
 
-async function saveCandles(candles, timeframe) {
+async function saveCandles(candles, timeframe, symbol) {
+	console.log(`${symbol} - ${timeframe}: ${candles.length} candles`)
 	const chunked = chunk(candles, 5000)
 
+	let x = 1
 	for await (let chunk of chunked) {
+		console.log(
+			`${symbol} - ${timeframe}m: writing chunk ${x} of ${chunked.length}`
+		)
 		switch (timeframe) {
 			case "1":
-				await kline_1m.create(chunk).catch(err => console.log(err))
+				await kline_1m
+					.insertMany(chunk, { ordered: false })
+					.catch(err => console.log(err))
 				break
 			case "3":
-				await kline_3m.create(chunk).catch(err => console.log(err))
+				await kline_3m
+					.insertMany(chunk, { ordered: false })
+					.catch(err => console.log(err))
 				break
 			case "5":
-				await kline_5m.create(chunk).catch(err => console.log(err))
+				await kline_5m
+					.insertMany(chunk, { ordered: false })
+					.catch(err => console.log(err))
 				break
 			case "15":
-				await kline_15m.create(chunk).catch(err => console.log(err))
+				await kline_15m
+					.insertMany(chunk, { ordered: false })
+					.catch(err => console.log(err))
 				break
 			case "60":
-				await kline_1h.create(chunk).catch(err => console.log(err))
+				await kline_1h
+					.insertMany(chunk, { ordered: false })
+					.catch(err => console.log(err))
 				break
 		}
+		x += 1
 	}
 }
 

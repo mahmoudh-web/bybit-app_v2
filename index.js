@@ -59,6 +59,9 @@ global.timeframes = [
 
 connectDb()
 
+const weekDay = DateTime.now().weekday
+const hour = DateTime.now().hour
+
 if (initialise === "true" && helper === "false") {
 	console.log(`Initialising log types`)
 	await setTypes()
@@ -67,37 +70,44 @@ if (initialise === "true" && helper === "false") {
 // update instrument data
 const marketData = async () => {
 	if (processing) return
-
-	processing = true
-	console.log(`Updating instrument data`)
-	// get data from api
-	const data = await getMarketData()
-	if (data.length) {
-		await setMarketData(data)
+	if ((weekDay === 1 && hour === 0) || initialise === "true") {
+		processing = true
+		console.log(`Updating instrument data`)
+		// get data from api
+		const data = await getMarketData()
+		if (data.length) {
+			await setMarketData(data)
+		}
+		processing = false
+	} else {
+		console.log("market data is checked on mondays during midnight hour")
 	}
-	processing = false
 }
 
 // check queue
 const checkQueue = async () => {
 	if (processing) return
 
-	processing = true
+	if ((weekDay === 1 && hour === 2) || initialise === "true") {
+		processing = true
 
-	// get queue count
-	const queueCount = await Queue.countDocuments()
+		// get queue count
+		const queueCount = await Queue.countDocuments()
 
-	// exit if queue items exist
-	if (queueCount > 0) {
-		console.log("items already in queue")
+		// exit if queue items exist
+		if (queueCount > 0) {
+			console.log("items already in queue")
+			processing = false
+			return
+		}
+
+		// create queue
+		console.log("queue is empty, proceeding to create queue")
+		await createQueue()
 		processing = false
-		return
+	} else {
+		console.log(`Update of historical data is carried out on mondays`)
 	}
-
-	// create queue
-	console.log("queue is empty, proceeding to create queue")
-	await createQueue()
-	processing = false
 }
 
 // process queue
@@ -108,16 +118,28 @@ const processQueue = async () => {
 	const job = await Queue.findOne({ active: false })
 	if (!job) return
 	// set job as active
-	// await Queue.findByIdAndUpdate(job._id, { active: true })
+	await Queue.findByIdAndUpdate(job._id, { active: true })
 
 	await processJob(job)
+
+	//delete job
+	await Queue.findByIdAndDelete(job._id)
 	processing = false
 }
 
 // start processes
-if (helper === "false" && initialise === "true") await marketData()
 
-if (helper === "false") await checkQueue()
+if (helper === "false") {
+	await marketData()
+	setTimeout(marketData, 3600000)
+}
+
+if (helper === "false") {
+	await checkQueue()
+	setTimeout(checkQueue, initialise ? 60000 : 3600000)
+}
 
 await processQueue()
-disconnectDb()
+setTimeout(processQueue, 10000)
+
+// disconnectDb()
