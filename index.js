@@ -70,9 +70,10 @@ if (initialise === "true" && helper === "false") {
 // update instrument data
 const marketData = async () => {
 	if (processing) return
+
+	console.log(`Updating instrument data`)
 	if ((weekDay === 1 && hour === 0) || initialise === "true") {
 		processing = true
-		console.log(`Updating instrument data`)
 		// get data from api
 		const data = await getMarketData()
 		if (data.length) {
@@ -88,9 +89,9 @@ const marketData = async () => {
 const checkQueue = async () => {
 	if (processing) return
 
+	console.log(`checking queue`)
 	if ((weekDay === 1 && hour === 2) || initialise === "true") {
 		processing = true
-		console.log(`checking queue`)
 
 		// get queue count
 		const queueCount = await Queue.countDocuments()
@@ -115,8 +116,8 @@ const checkQueue = async () => {
 const processQueue = async () => {
 	if (processing) return
 
-	processing = true
 	console.log("processing queue")
+	processing = true
 	const job = await Queue.findOne({ active: false })
 	if (!job) return
 	// set job as active
