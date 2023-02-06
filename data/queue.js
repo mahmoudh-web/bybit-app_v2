@@ -1,7 +1,9 @@
+import axios from "axios"
+import { last } from "lodash-es"
 import { DateTime } from "luxon"
 import { getInstruments } from "../instruments/instruments.js"
 import { Queue } from "../mongo/schema.js"
-import { getLastCandle } from "./candles.js"
+import { getFirstCandle, getLastCandle } from "./candles.js"
 import { setEndDate } from "./endDate.js"
 import { setJob } from "./setJob.js"
 
@@ -14,6 +16,10 @@ const createQueue = async () => {
 	}
 
 	const startDate = DateTime.fromISO("2021-01-01T00:00:00.000").setZone("utc")
+	const endDate = DateTime.now()
+		.minus({ days: 1 })
+		.endOf("day")
+		.setZone("utc")
 
 	for await (let instrument of instruments) {
 		let oneStart = startDate
@@ -30,35 +36,72 @@ const createQueue = async () => {
 			oneStart = DateTime.fromMillis(lastCandles.one.start)
 				.plus({ minutes: 1 })
 				.setZone("utc")
+		} else {
+			oneStart = await getFirstCandle(
+				instrument.symbol,
+				"1",
+				startDate.ts,
+				endDate.ts
+			)
 		}
 
 		if (lastCandles.three) {
 			threeStart = DateTime.fromMillis(lastCandles.three.start)
 				.plus({ minutes: 3 })
 				.setZone("utc")
-			const threeEnd = setEndDate(threeStart.ts)
+		} else {
+			threeStart = await getFirstCandle(
+				instrument.symbol,
+				"3",
+				startDate.ts,
+				endDate.ts
+			)
 		}
 
 		if (lastCandles.five) {
 			fiveStart = DateTime.fromMillis(lastCandles.five.start)
 				.plus({ minutes: 5 })
 				.setZone("utc")
-			const fiveEnd = setEndDate(fiveStart.ts)
+		} else {
+			fiveStart = await getFirstCandle(
+				instrument.symbol,
+				"5",
+				startDate.ts,
+				endDate.ts
+			)
 		}
 
 		if (lastCandles.fifteen) {
 			fifteenStart = DateTime.fromMillis(lastCandles.fifteen.start)
 				.plus({ minutes: 15 })
 				.setZone("utc")
-			const fifteenEnd = setEndDate(fifteenStart.ts)
+		} else {
+			fifteenStart = await getFirstCandle(
+				instrument.symbol,
+				"15",
+				startDate.ts,
+				endDate.ts
+			)
 		}
 
 		if (lastCandles.hour) {
 			hourStart = DateTime.fromMillis(lastCandles.hour.start)
 				.plus({ hours: 1 })
 				.setZone("utc")
-			const hourEnd = setEndDate(hourStart.ts)
+		} else {
+			hourStart = await getFirstCandle(
+				instrument.symbol,
+				"60",
+				startDate.ts,
+				endDate.ts
+			)
 		}
+
+		// const oneEnd = setEndDate(oneStart.ts)
+		// const threeEnd = setEndDate(threeStart.ts)
+		// const fiveEnd = setEndDate(fiveStart.ts)
+		// const fifteenEnd = setEndDate(fifteenStart.ts)
+		// const hourEnd = setEndDate(hourStart.ts)
 
 		await setJob(instrument.symbol, "1", oneStart)
 		await setJob(instrument.symbol, "3", threeStart)

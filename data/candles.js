@@ -6,6 +6,8 @@ import {
 	kline_1h,
 } from "../mongo/schema.js"
 import { DateTime } from "luxon"
+import { last } from "lodash-es"
+import axios from "axios"
 
 const getLastCandle = async instrument => {
 	const one = await kline_1m
@@ -35,4 +37,14 @@ const getLastCandle = async instrument => {
 	return { one, three, five, fifteen, hour }
 }
 
-export { getLastCandle }
+const getFirstCandle = async (symbol, interval, start, end) => {
+	const query = `${process.env.BYBIT_FUTURES_DATA_BASE_URL}${process.env.BYBIT_FUTURES_KLINE}?symbol=${symbol}&interval=${interval}&start=${start}&end=${end}&limit=200`
+	const firstCandleQuery = await axios(query)
+		.then(res => res.data.result.list)
+		.catch(err => console.log(err))
+	return DateTime.fromMillis(Number(last(firstCandleQuery)[0]))
+		.startOf("day")
+		.setZone("utc")
+}
+
+export { getLastCandle, getFirstCandle }

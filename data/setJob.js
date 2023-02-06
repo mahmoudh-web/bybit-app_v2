@@ -13,10 +13,8 @@ const setJob = async (symbol, interval, start) => {
 			end: end.ts,
 			endISO: end.toISO(),
 		}
-
 		await Queue.create(queueData)
 	}
-
 	return true
 }
 
