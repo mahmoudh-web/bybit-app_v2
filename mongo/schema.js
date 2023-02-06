@@ -143,9 +143,6 @@ export {
 	kline_1h,
 }
 
-//   model Queue {
-//   }
-
 //   model TestQueue {
 //     id        String       @id @default(auto()) @map("_id") @db.ObjectId
 //     symbol    String

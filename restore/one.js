@@ -65,6 +65,7 @@ if (instruments.length) {
 					)
 				}
 			}
+
 			mongoose.disconnect()
 		})
 }

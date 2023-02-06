@@ -1,4 +1,3 @@
-import mongoose from "mongoose"
 import axios from "axios"
 import { Instrument } from "../mongo/schema.js"
 
@@ -60,4 +59,12 @@ const setMarketData = async data => {
 	}
 }
 
-export { getMarketData, setMarketData }
+const getInstruments = async () => {
+	const instruments = await Instrument.find({
+		download: true,
+	})
+	if (!instruments.length) return []
+	return instruments
+}
+
+export { getMarketData, setMarketData, getInstruments }
