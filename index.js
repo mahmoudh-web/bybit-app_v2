@@ -91,7 +91,7 @@ const checkQueue = async () => {
 
 	processing = true
 	console.log(`checking queue`)
-	if ((weekDay === 1 && hour === 2) || initialise === "true") {
+	if (weekDay === 1 || initialise === "true") {
 		// get queue count
 		const queueCount = await Queue.countDocuments()
 
@@ -106,7 +106,9 @@ const checkQueue = async () => {
 	} else {
 		console.log(`Update of historical data is carried out on mondays`)
 	}
+
 	processing = false
+	console.log(processing)
 }
 
 // process queue
@@ -116,10 +118,19 @@ const processQueue = async () => {
 	processing = true
 	console.log("processing queue")
 	const job = await Queue.findOne({ active: false })
-	if (!job) return
+
+	if (!job) {
+		console.log("Queue is empty")
+		processing = false
+		return
+	}
+
 	// set job as active
 	await Queue.findByIdAndUpdate(job._id, { active: true })
 
+	console.log(
+		`Processing job for ${job.symbol} - ${job.timeframe}m from ${job.startISO} to ${job.endISO}`
+	)
 	await processJob(job)
 
 	//delete job
@@ -131,15 +142,15 @@ const processQueue = async () => {
 
 if (helper === "false") {
 	await marketData()
-	setTimeout(marketData, 3600000)
+	setInterval(marketData, 3600000)
 }
 
 if (helper === "false") {
 	await checkQueue()
-	setTimeout(checkQueue, initialise ? 60000 : 3600000)
+	setInterval(checkQueue, initialise ? 60000 : 3600000)
 }
 
 await processQueue()
-setTimeout(processQueue, 10000)
+setInterval(processQueue, 5000)
 
 // disconnectDb()

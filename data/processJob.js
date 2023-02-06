@@ -35,6 +35,7 @@ const processJob = async job => {
 	} while (requestStart < sessionEnd)
 
 	const results = []
+	let count = 1
 	for await (let request of requests) {
 		// get candle data
 		const data = await axios(request)
@@ -45,10 +46,13 @@ const processJob = async job => {
 		// format candle data
 		const formatted = formatCandles(data, job.symbol)
 		formatted.forEach(candle => results.push(candle))
+
 		console.log(
-			`${job.symbol} - ${job.timeframe}m: received ${data.length} candles, total ${results.length} candles`
+			`${job.symbol} - ${job.timeframe}m: request ${count} of ${requests.length} - received ${data.length} candles, total ${results.length} candles`
 		)
+		count += 1
 	}
+
 	if (results.length) {
 		await saveCandles(results, job.timeframe, job.symbol)
 		console.log(`finished writing ${job.symbol} - ${job.timeframe}m`)
