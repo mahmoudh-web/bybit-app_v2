@@ -99,13 +99,12 @@ const checkQueue = async () => {
 		// exit if queue items exist
 		if (queueCount > 0) {
 			console.log("items already in queue")
-			processing = false
-			return
+		} else {
+			// create queue
+			console.log("queue is empty, proceeding to create queue")
+			await createQueue()
 		}
 
-		// create queue
-		console.log("queue is empty, proceeding to create queue")
-		await createQueue()
 		processing = false
 	} else {
 		console.log(`Update of historical data is carried out on mondays`)
