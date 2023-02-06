@@ -90,6 +90,7 @@ const checkQueue = async () => {
 
 	if ((weekDay === 1 && hour === 2) || initialise === "true") {
 		processing = true
+		console.log(`checking queue`)
 
 		// get queue count
 		const queueCount = await Queue.countDocuments()
@@ -115,6 +116,7 @@ const processQueue = async () => {
 	if (processing) return
 
 	processing = true
+	console.log("processing queue")
 	const job = await Queue.findOne({ active: false })
 	if (!job) return
 	// set job as active
