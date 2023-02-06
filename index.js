@@ -71,28 +71,27 @@ if (initialise === "true" && helper === "false") {
 const marketData = async () => {
 	if (processing) return
 
+	processing = true
 	console.log(`Updating instrument data`)
 	if ((weekDay === 1 && hour === 0) || initialise === "true") {
-		processing = true
 		// get data from api
 		const data = await getMarketData()
 		if (data.length) {
 			await setMarketData(data)
 		}
-		processing = false
 	} else {
 		console.log("market data is checked on mondays during midnight hour")
 	}
+	processing = false
 }
 
 // check queue
 const checkQueue = async () => {
 	if (processing) return
 
+	processing = true
 	console.log(`checking queue`)
 	if ((weekDay === 1 && hour === 2) || initialise === "true") {
-		processing = true
-
 		// get queue count
 		const queueCount = await Queue.countDocuments()
 
@@ -104,19 +103,18 @@ const checkQueue = async () => {
 			console.log("queue is empty, proceeding to create queue")
 			await createQueue()
 		}
-
-		processing = false
 	} else {
 		console.log(`Update of historical data is carried out on mondays`)
 	}
+	processing = false
 }
 
 // process queue
 const processQueue = async () => {
 	if (processing) return
 
-	console.log("processing queue")
 	processing = true
+	console.log("processing queue")
 	const job = await Queue.findOne({ active: false })
 	if (!job) return
 	// set job as active
